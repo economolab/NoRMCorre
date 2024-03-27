@@ -88,7 +88,13 @@ end
 if isscalar(min_shift); min_shift = min_shift*[1,1]; end
 if isscalar(max_shift); max_shift = max_shift*[1,1]; end
 
+
+
 [nr,nc]=size(buf2ft);
+if isa(buf2ft,'gpuArray')
+    nr = gpuArray(nr);
+    nc = gpuArray(nc);
+end
 Nr = ifftshift(-fix(nr/2):ceil(nr/2)-1);
 Nc = ifftshift(-fix(nc/2):ceil(nc/2)-1);
 
@@ -127,7 +133,8 @@ elseif usfac > 1
     end
     CC = ifft2(buf_pad);
     CCabs = abs(CC);
-    [row_shift, col_shift] = find(CCabs == max(CCabs(:)),1,'first');        
+    [~,b] = max(CCabs(:));
+    [row_shift,col_shift] = ind2sub(size(CCabs),b);
     % Now change shifts so that they represent relative shifts and not indices
     Nr2 = ifftshift(-fix(nr):ceil(nr)-1);
     Nc2 = ifftshift(-fix(nc):ceil(nc)-1);
@@ -224,6 +231,15 @@ if exist('coff', 'var')~=1, coff=0;  end
 if exist('usfac','var')~=1, usfac=1; end
 if exist('noc',  'var')~=1, noc=nc;  end
 if exist('nor',  'var')~=1, nor=nr;  end
+if isa(in,'gpuArray')
+    nr = gpuArray(nr);
+    nc = gpuArray(nc);
+    roff=gpuArray(roff);
+    coff=gpuArray(coff);
+    usfac=gpuArray(usfac);
+    noc=gpuArray(noc);
+    nor=gpuArray(nor);
+end
 % Compute kernels and obtain DFT by matrix products
 kernc=exp((-1i*2*pi/(nc*usfac))*( ifftshift(0:nc-1).' - floor(nc/2) )*( (0:noc-1) - coff ));
 kernr=exp((-1i*2*pi/(nr*usfac))*( (0:nor-1).' - roff )*( ifftshift([0:nr-1]) - floor(nr/2)  ));
@@ -270,7 +286,12 @@ Nin = size(imFT);
 imFT = fftshift(imFT);
 center = floor(size(imFT)/2)+1;
 
-imFTout = zeros(outsize);
+
+if isa(imFT,'gpuArray')
+    imFTout = zeros(outsize,'gpuArray');
+else
+    imFTout = zeros(outsize);
+end
 centerout = floor(size(imFTout)/2)+1;
 
 % imout(centerout(1)+[1:Nin(1)]-center(1),centerout(2)+[1:Nin(2)]-center(2)) ...

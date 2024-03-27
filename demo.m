@@ -16,12 +16,18 @@ tic; Y = read_file(name); toc; % read the file (optional, you can also pass the 
 Y = single(Y);                 % convert to single precision 
 T = size(Y,ndims(Y));
 Y = Y - min(Y(:));
+
+%%
+Y = tiffreadVolume("C:\Users\WillRemote\Desktop\Will\for camera reg.tif");
+Y = Y(:,:,50:end);
+
 %% set parameters (first try out rigid motion correction)
 
 options_rigid = NoRMCorreSetParms('d1',size(Y,1),'d2',size(Y,2),'bin_width',200,'max_shift',15,'us_fac',50,'init_batch',200);
 
-%% perform motion correction
+%% perform motion correction 
 tic; [M1,shifts1,template1,options_rigid] = normcorre(Y,options_rigid); toc
+% tic; [M1,shifts1,template1,options_rigid] = normcorre_batch(Y,options_rigid); toc
 
 %% now try non-rigid motion correction (also in parallel)
 options_nonrigid = NoRMCorreSetParms('d1',size(Y,1),'d2',size(Y,2),'grid_size',[32,32],'mot_uf',4,'bin_width',200,'max_shift',15,'max_dev',3,'us_fac',50,'init_batch',200);

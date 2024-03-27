@@ -55,6 +55,8 @@ else % array loaded in memory
     sizY = size(Y);    
 end
 
+Y = gpuArray(Y);
+
 if length(sizY) == nd
     T = 1;
 else
@@ -138,7 +140,11 @@ switch filetype
         if nd == 2; Y_temp = Y(:,:,interval); elseif nd == 3; Y_temp = Y(:,:,:,interval); end
 end
 
-data_type = class(Y_temp);
+if isa(Y_temp,'gpuArray')
+    data_type = underlyingType(Y_temp);
+else
+    data_type = class(Y_temp);
+end
 Y_temp = single(Y_temp);
 
 if nargin < 3 || isempty(template)
@@ -161,11 +167,21 @@ else
     template_in = single(template + add_value);
 end
 
+template_in = gpuArray(template_in);
+
 [d1,d2,d3,~] = size(Y_temp);
 if nd == 2; d3 = 1; end
 %% setup grids for patches
 
 [xx_s,xx_f,yy_s,yy_f,zz_s,zz_f,xx_us,xx_uf,yy_us,yy_uf,zz_us,zz_uf] = construct_grid(grid_size,mot_uf,d1,d2,d3,min_patch_size);
+
+if isa(template_in,'gpuArray')
+    xx_s = gpuArray(xx_s); xx_f = gpuArray(xx_f); yy_f = gpuArray(yy_f);
+    zz_s = gpuArray(zz_s);zz_f = gpuArray(zz_f);xx_us = gpuArray(xx_us);
+    xx_uf = gpuArray(xx_uf);yy_us = gpuArray(yy_us);yy_uf = gpuArray(yy_uf);
+    zz_us = gpuArray(zz_us);zz_uf = gpuArray(zz_uf);
+end
+
 shifts = struct('shifts',cell(T,1),'shifts_up',cell(T,1),'diff',cell(T,1));
 temp_cell = mat2cell_ov(template_in,xx_us,xx_uf,yy_us,yy_uf,zz_us,zz_uf,overlap_post,sizY);
 
@@ -178,6 +194,9 @@ for i = 1:length(xx_us)
     for j = 1:length(yy_us)
         for k = 1:length(zz_us)
             [nr,nc,np] = size(temp_cell{i,j,k});
+            if isa(temp_cell{1},'gpuArray')
+                nr = gpuArray(nr); nc = gpuArray(nc); np = gpuArray(np);
+            end
             nr = ifftshift(-fix(nr/2):ceil(nr/2)-1);
             nc = ifftshift(-fix(nc/2):ceil(nc/2)-1);
             np = ifftshift(-fix(np/2):ceil(np/2)-1);
@@ -195,8 +214,13 @@ template = mat2cell_ov(template_in,xx_s,xx_f,yy_s,yy_f,zz_s,zz_f,overlap_pre,siz
 temp_mat = template_in;
 fftTemp = cellfun(@fftn,template,'un',0);
 fftTempMat = fftn(temp_mat);
-if nd == 2; buffer = mat2cell_ov(zeros(d1,d2,bin_width,'single'),xx_s,xx_f,yy_s,yy_f,zz_s,zz_f,overlap_pre,sizY); end
-if nd == 3; buffer = mat2cell_ov(zeros(d1,d2,d3,bin_width,'single'),xx_s,xx_f,yy_s,yy_f,zz_s,zz_f,overlap_pre,sizY); end
+if isa(fftTempMat,'gpuArray')
+    x = zeros(d1,d2,bin_width,'single','gpuArray');
+else
+    x = zeros(d1,d2,bin_width,'single');
+end
+if nd == 2; buffer = mat2cell_ov(x,xx_s,xx_f,yy_s,yy_f,zz_s,zz_f,overlap_pre,sizY); end
+if nd == 3; buffer = mat2cell_ov(x,xx_s,xx_f,yy_s,yy_f,zz_s,zz_f,overlap_pre,sizY); end
 
 
 if ~strcmpi(options.output_type,'mat')

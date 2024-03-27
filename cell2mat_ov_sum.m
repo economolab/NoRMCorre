@@ -12,20 +12,25 @@ function X = cell2mat_ov_sum(I,xx_s,xx_f,yy_s,yy_f,zz_s,zz_f,overlap,sz,Bs)
 % X:            output matrix
 
 % Written by Eftychios A. Pnevmatikakis, Simons Foundation, 2016
-
-if nargin < 10 || isempty(Bs)
-    Bs = cellfun(@(x) ones(size(x)), I,'un',0);
+if isa(I{1},'gpuArray')
+    dType = 'gpuArray';
+else
+    dType = 'single';
 end
-X = zeros([sz,size(I{1,1},length(sz)+1)]);
-B = zeros(size(X));
+if nargin < 10 || isempty(Bs)
+    Bs = cellfun(@(x) ones(size(x),dType), I,'un',0);
+end
+X = zeros([sz,size(I{1,1},length(sz)+1)],dType);
+B = zeros(size(X),dType);
 if length(sz) == 2; sz(3) = 1; end
 
 for i = 1:length(xx_f)
     for j = 1:length(yy_f)
         for k = 1:length(zz_f)
             extended_grid = [max(xx_s(i)-overlap(1),1),min(xx_f(i)+overlap(1),sz(1)),max(yy_s(j)-overlap(2),1),min(yy_f(j)+overlap(2),sz(2)),max(zz_s(k)-overlap(3),1),min(zz_f(k)+overlap(3),sz(3))];
-            %W = construct_weights([xx_s(i),xx_f(i),yy_s(j),yy_f(j),zz_s(k),zz_f(k)],extended_grid)';            
-            Xtemp = zeros(size(I{i,j,k}));
+            %W = construct_weights([xx_s(i),xx_f(i),yy_s(j),yy_f(j),zz_s(k),zz_f(k)],extended_grid)';   
+            
+            Xtemp = zeros(size(I{i,j,k}),dType);
             Btemp = Xtemp;
             ind = ~isnan(I{i,j,k});
             Xtemp(ind) = Bs{i,j,k}(ind).*I{i,j,k}(ind);
