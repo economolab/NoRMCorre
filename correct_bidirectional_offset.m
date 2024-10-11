@@ -8,7 +8,7 @@ if ~exist('nFrames','var'); nFrames = 50; end
 
 if isa(Y,'char')
     Y = read_file(Y,1,nFrames);
-elseif isobject(Y);
+elseif ~isa(Y,'gpuArray') && isobject(Y);
     details = whos(Y);
     var_sizes = [details.bytes];
     [~,var_ind] = max(var_sizes);

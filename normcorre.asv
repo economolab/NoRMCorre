@@ -325,31 +325,30 @@ for it = 1:iter
             max_dev = 0*max_dev;
         end
         if ~use_parallel
-            % WJC Economo Lab 2024-- started to vectorize to increase speed
-            % [i,j,k] = meshgrid(1:length(xx_s),1:length(yy_s),1:length(zz_s));
-            % if nd == 2
-            %     [output,Greg] = arrayfun(@(i,j,k) dftregistration_min_max(fftTemp{i,j,k},fftY{i,j,k},us_fac,lb-max_dev(1:2),ub+max_dev(1:2),options.phase_flag),i,j,k,'UniformOutput',false);
-            % elseif nd == 3
-            %     [output,Greg] = arrayfun(@(i,j,k) dftregistration_min_max_3d(fftTemp{i,j,k},fftY{i,j,k},us_fac,lb-max_dev,ub+max_dev,options.phase_flag),i,j,k,'UniformOutput',false);
-            % end
-            % M_temp = cellfun(@(c,o,t) remove_boundaries(real(ifftn(c)),o(3:end),'copy',t),Greg,output,template','UniformOutput',false);
-            % output = cat(3,output);
-            % shifts_temp(i,j,k,1) = output(3);
-            % shifts_temp(i,j,k,2) = output(4); 
-            % for i = 1:length(xx_s)
-            %     for j = 1:length(yy_s)           
-            %         for k = 1:length(zz_s)
-            %             if nd == 2; buffer{i,j,k}(:,:,ind) = M_temp{i,j,k};  end    
-            %             if nd == 3; buffer{i,j,k}(:,:,:,ind) = M_temp{i,j,k};  end 
-            %             shifts_temp(i,j,k,1) = output(3);
-            %             shifts_temp(i,j,k,2) = output(4); 
-            %             diff_temp(i,j,k) = output(2);
-            %             if all([length(xx_s),length(yy_s),length(zz_s)] == 1)
-            %                 M_fin{i,j,k} = remove_boundaries(M_temp,output(3:end),options.boundary,template{i,j,k},add_value);
-            %             end
-            %         end
-            %     end
-            % end
+            [i,j,k] = meshgrid(1:length(xx_s),1:length(yy_s),1:length(zz_s));
+            if nd == 2
+                [output,Greg] = arrayfun(@(i,j,k) dftregistration_min_max(fftTemp{i,j,k},fftY{i,j,k},us_fac,lb-max_dev(1:2),ub+max_dev(1:2),options.phase_flag),i,j,k,'UniformOutput',false);
+            elseif nd == 3
+                [output,Greg] = arrayfun(@(i,j,k) dftregistration_min_max_3d(fftTemp{i,j,k},fftY{i,j,k},us_fac,lb-max_dev,ub+max_dev,options.phase_flag),i,j,k,'UniformOutput',false);
+            end
+            M_temp = cellfun(@(c,o,t) remove_boundaries(real(ifftn(c)),o(3:end),'copy',t),Greg,output,template','UniformOutput',false);
+            output = cat(3,output);
+            shifts_temp(i,j,k,1) = output(3);
+            shifts_temp(i,j,k,2) = output(4); 
+            for i = 1:length(xx_s)
+                for j = 1:length(yy_s)           
+                    for k = 1:length(zz_s)
+                        if nd == 2; buffer{i,j,k}(:,:,ind) = M_temp{i,j,k};  end    
+                        if nd == 3; buffer{i,j,k}(:,:,:,ind) = M_temp{i,j,k};  end 
+                        shifts_temp(i,j,k,1) = output(3);
+                        shifts_temp(i,j,k,2) = output(4); 
+                        diff_temp(i,j,k) = output(2);
+                        if all([length(xx_s),length(yy_s),length(zz_s)] == 1)
+                            M_fin{i,j,k} = remove_boundaries(M_temp,output(3:end),options.boundary,template{i,j,k},add_value);
+                        end
+                    end
+                end
+            end
             for i = 1:length(xx_s)
                 for j = 1:length(yy_s)           
                     for k = 1:length(zz_s)
