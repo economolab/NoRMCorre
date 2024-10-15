@@ -14,11 +14,23 @@ function X = cell2mat_ov(I,xx_s,xx_f,yy_s,yy_f,zz_s,zz_f,overlap,sz)
 % Old version Written by Eftychios A. Pnevmatikakis, Simons Foundation, 2016
 % New version (much faster) written by Will Cunningham Economo Lab 2024
 
+if ndims(I{1})>2
+    throw("currently not working for 3+ dim")
+end
+
 if isa(I{1},'gpuArray')
     dType = 'gpuArray';
 else
     dType = 'single';
 end
+
+if size(I,1) == 1
+    overlap(1) = 0;
+end
+if size(I,2) == 1
+    overlap(2) = 0;
+end
+
 patchSize = size(I{round(size(I,1)/2),round(size(I,2)/2)});
 sameSize = cellfun(@(X) all(size(X)==patchSize),I);
 nonBorderCols = any(sameSize~=0,1);
@@ -51,7 +63,7 @@ end
 % Initialize the row transformation matrix
 A = zeros(sz(1),size(temp,1),dType);
 
-toAdd = (eye(patchSize(1),dType).*[1:overlap(1) (overlap(1)*ones(1,patchSize(1)-2*overlap(1),dType)) overlap(1):-1:1]);
+toAdd = (eye(patchSize(1),dType).*[1:overlap(1) (max(overlap(1),1)*ones(1,patchSize(1)-2*overlap(1),dType)) overlap(1):-1:1]);
 for i = 1:ceil(size(temp,1)/patchSize(1))
     
     idx2 = -overlap(1) + patchSize(1)*(i-1)+1; idx2 = idx2:idx2+patchSize(1)-1;
@@ -62,6 +74,7 @@ for i = 1:ceil(size(temp,1)/patchSize(1))
 end
 A = A./sum(A,2);
 
+toAdd = (eye(patchSize(2),dType).*[1:overlap(2) (max(overlap(2),1)*ones(1,patchSize(2)-2*overlap(2),dType)) overlap(2):-1:1]);
 % Initialize the row transformation matrix
 B = zeros(sz(2),size(temp,2),dType);
 for i = 1:ceil(size(temp,2)/patchSize(2))
