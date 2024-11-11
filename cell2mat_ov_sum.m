@@ -35,6 +35,16 @@ patchSize = size(I{round(size(I,1)/2),round(size(I,2)/2)});
 sameSize = cellfun(@(X) all(size(X)==patchSize),I);
 nonBorderCols = any(sameSize~=0,1);
 nonBorderRows = any(sameSize~=0,2);
+dex = find(~nonBorderRows);
+for i = 2:numel(dex)
+    j = dex(i);
+    I(j,:) = cellfun(@(c) padarray(c,[patchSize(1)-size(c,1),0],0,'post'),I(j,:),'UniformOutput',false);
+end
+dex = find(~nonBorderCols);
+for i = 2:numel(dex)
+    j = dex(i);
+    I(:,j) = cellfun(@(c) padarray(c,[0,patchSize(2)-size(c,2)],0,'post'),I(:,j),'UniformOutput',false);
+end
 temp = cat(3,I{nonBorderRows,nonBorderCols});
 temp = reshape(temp,patchSize(1),patchSize(2),sum(nonBorderRows),sum(nonBorderCols));
 temp = permute(temp,[1,3,2,4]);
